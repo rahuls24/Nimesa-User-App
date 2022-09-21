@@ -110,6 +110,21 @@ export default function UserDataTable({ userData, isFetching }) {
 					<CircularProgress />
 				</Box>
 			)}
+			{!isFetching && userData?.length === 0 && (
+				<Box
+					sx={{
+						width: '100%',
+						minHeight: '250px',
+						display: 'flex',
+						justifyContent: 'center',
+						alignItems: 'center',
+					}}
+				>
+					<Typography component='h1' variant='h6'>
+						{'No user found.'}
+					</Typography>
+				</Box>
+			)}
 			<TablePagination
 				rowsPerPageOptions={[5, 10, 25]}
 				component='div'
