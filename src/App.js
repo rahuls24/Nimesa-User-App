@@ -12,7 +12,11 @@ import UserForm from './components/UserForm';
 import useLocalStorage from './hooks/useLocalStorage';
 import { delayForGivenTime } from './utils/commonFunctions';
 
-function App() {
+import { Authenticator } from '@aws-amplify/ui-react';
+import { Amplify } from 'aws-amplify';
+import awsconfig from './aws-exports';
+Amplify.configure(awsconfig);
+function App({ isPassedToWithAuthenticator, signOut, user }) {
 	const [userData, setUserData] = useLocalStorage('nimesa-users-list', []);
 	const [userDataForTable, setUserDataForTable] = useState([]);
 	const [isFetchingDataForUserData, setIsFetchingDataForUserData] =
@@ -31,37 +35,41 @@ function App() {
 	}, [userData]);
 
 	return (
-		<>
-			<AppHeader />
-			<Grid
-				container
-				spacing={{ xs: 2, md: 3 }}
-				columns={{ xs: 4, md: 8, lg: 12 }}
-			>
-				<Grid item xs={4} md={3} lg={4} sx={{ marginTop: 8 }}>
-					{/* It can be a standalone component.  */}
-					<Accordion>
-						<AccordionSummary
-							expandIcon={<ExpandMoreIcon />}
-							aria-controls='add-user-content'
-							id='add-user-header'
-						>
-							<Typography>Add User</Typography>
-						</AccordionSummary>
-						<AccordionDetails>
-							<UserForm saveUser={setUserData} />
-						</AccordionDetails>
-					</Accordion>
-				</Grid>
+		<Authenticator loginMechanisms={['email']}>
+			{({ signOut, user }) => (
+				<>
+					<AppHeader signOutHandler={signOut} />
+					<Grid
+						container
+						spacing={{ xs: 2, md: 3 }}
+						columns={{ xs: 4, md: 8, lg: 12 }}
+					>
+						<Grid item xs={4} md={3} lg={4} sx={{ marginTop: 8 }}>
+							{/* It can be a standalone component.  */}
+							<Accordion>
+								<AccordionSummary
+									expandIcon={<ExpandMoreIcon />}
+									aria-controls='add-user-content'
+									id='add-user-header'
+								>
+									<Typography>Add User</Typography>
+								</AccordionSummary>
+								<AccordionDetails>
+									<UserForm saveUser={setUserData} />
+								</AccordionDetails>
+							</Accordion>
+						</Grid>
 
-				<Grid item xs={4} md={5} lg={8}>
-					<UserDataTable
-						userData={userDataForTable}
-						isFetching={isFetchingDataForUserData}
-					/>
-				</Grid>
-			</Grid>
-		</>
+						<Grid item xs={4} md={5} lg={8}>
+							<UserDataTable
+								userData={userDataForTable}
+								isFetching={isFetchingDataForUserData}
+							/>
+						</Grid>
+					</Grid>
+				</>
+			)}
+		</Authenticator>
 	);
 }
 

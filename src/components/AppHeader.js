@@ -1,28 +1,27 @@
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
+import Button from '@mui/material/Button';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-const AppHeader = () => {
+
+const AppHeader = ({ signOutHandler }) => {
 	return (
-		<AppBar position='static'>
-			<Container maxWidth='xl'>
-				<Toolbar disableGutters>
-					<Box
-						sx={{
-							width: '100%',
-							display: 'flex',
-							justifyContent: 'center',
-							alignItems: 'center',
-						}}
+		<Box sx={{ flexGrow: 1 }}>
+			<AppBar position='static'>
+				<Toolbar>
+					<Typography
+						variant='h6'
+						component='div'
+						sx={{ flexGrow: 1 }}
 					>
-						<Typography variant='h6' component='div' gutterBottom>
-							{'Nimesa User App'}
-						</Typography>
-					</Box>
+						User App
+					</Typography>
+					<Button onClick={signOutHandler} color='inherit'>
+						Logout
+					</Button>
 				</Toolbar>
-			</Container>
-		</AppBar>
+			</AppBar>
+		</Box>
 	);
 };
 export default AppHeader;
