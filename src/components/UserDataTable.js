@@ -9,15 +9,20 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import { useState } from 'react';
+import { API, graphqlOperation } from 'aws-amplify';
+import { useEffect, useState } from 'react';
+import { listUsers } from '../graphql/queries';
+import { onCreateUser } from '../graphql/subscriptions';
 const columns = [
 	{ id: 'id', label: 'NO', minWidth: 60 },
 	{ id: 'name', label: 'Name', minWidth: 170 },
 	{ id: 'email', label: 'Email', minWidth: 170 },
-	{ id: 'phoneNumber', label: 'Phone Number', minWidth: 170 },
+	{ id: 'phone', label: 'Phone Number', minWidth: 170 },
 ];
 
-export default function UserDataTable({ userData, isFetching }) {
+export default function UserDataTable() {
+	const [usersData, setUsersData] = useState([]);
+	const [isFetching, setIsFetching] = useState(false);
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -29,7 +34,32 @@ export default function UserDataTable({ userData, isFetching }) {
 		setRowsPerPage(+event.target.value);
 		setPage(0);
 	};
+	const getUsersData = async () => {
+		setIsFetching(true);
+		try {
+			const usersData = await API.graphql(graphqlOperation(listUsers));
+			if ('listUsers' in usersData.data) {
+				const usersArray = usersData.data.listUsers?.items ?? [];
+				setUsersData([...usersArray]);
+			}
+		} catch (error) {
+			console.log(error);
+		}
+		setIsFetching(false);
+	};
+	useEffect(() => {
+		getUsersData();
+	}, []);
 
+	useEffect(() => {
+		const userAddedSubscription = API.graphql(
+			graphqlOperation(onCreateUser),
+		).subscribe({
+			next: getUsersData,
+			error: error => console.warn(error),
+		});
+		return () => userAddedSubscription.unsubscribe();
+	}, []);
 	return (
 		<Paper
 			sx={{
@@ -64,7 +94,7 @@ export default function UserDataTable({ userData, isFetching }) {
 					</TableHead>
 					<TableBody>
 						{!isFetching &&
-							userData
+							usersData
 								.slice(
 									page * rowsPerPage,
 									page * rowsPerPage + rowsPerPage,
@@ -110,7 +140,7 @@ export default function UserDataTable({ userData, isFetching }) {
 					<CircularProgress />
 				</Box>
 			)}
-			{!isFetching && userData?.length === 0 && (
+			{!isFetching && usersData?.length === 0 && (
 				<Box
 					sx={{
 						width: '100%',
@@ -128,7 +158,7 @@ export default function UserDataTable({ userData, isFetching }) {
 			<TablePagination
 				rowsPerPageOptions={[5, 10, 25]}
 				component='div'
-				count={userData.length}
+				count={usersData.length}
 				rowsPerPage={rowsPerPage}
 				page={page}
 				onPageChange={handleChangePage}

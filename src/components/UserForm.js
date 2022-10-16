@@ -5,12 +5,12 @@ import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
+import { API, graphqlOperation } from 'aws-amplify';
 import { useFormik } from 'formik';
 import { forwardRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import * as yup from 'yup';
-import { delayForGivenTime } from '../utils/commonFunctions';
-
+import { createUser } from '../graphql/mutations';
 const Alert = forwardRef(function Alert(props, ref) {
 	return <MuiAlert elevation={6} ref={ref} variant='filled' {...props} />;
 });
@@ -29,7 +29,7 @@ const validationSchema = yup.object({
 		.string()
 		.email('Enter a valid email')
 		.required('Email is required'),
-	phoneNumber: yup
+	phone: yup
 		.string()
 		.matches(phoneRegExp, 'Phone number is not valid')
 		.required('Phone Number is required'),
@@ -47,18 +47,35 @@ export default function UserForm({ saveUser }) {
 		initialValues: {
 			name: '',
 			email: '',
-			phoneNumber: '',
+			phone: '',
 		},
 		validationSchema: validationSchema,
 		onSubmit: async values => {
 			setIsSaveBtnLoading(true);
-			await delayForGivenTime(3000);
-			saveUser(prev => [...prev, { ...values, id: uuidv4() }]);
-			setAutoHideAlertProps(prev => ({
-				...prev,
-				shouldShow: true,
-				alertMsg: 'User is added successfully',
-			}));
+			const userPayload = {
+				...values,
+				id: uuidv4(),
+			};
+			try {
+				await API.graphql(
+					graphqlOperation(createUser, {
+						input: userPayload,
+					}),
+				);
+				setAutoHideAlertProps(prev => ({
+					...prev,
+					shouldShow: true,
+					alertMsg: 'User is added successfully',
+				}));
+			} catch (error) {
+				setAutoHideAlertProps(prev => ({
+					...prev,
+					shouldShow: true,
+					severity: 'error',
+					alertMsg: 'Something went wrong. Please try again.',
+				}));
+				console.log(error);
+			}
 			resetForm();
 			setIsSaveBtnLoading(false);
 		},
@@ -113,20 +130,16 @@ export default function UserForm({ saveUser }) {
 					<TextField
 						margin='normal'
 						fullWidth
-						id='phoneNumber'
+						id='phone'
 						label='Phone Number'
-						name='phoneNumber'
-						autoComplete='phoneNumber'
-						value={formik.values.phoneNumber}
+						name='phone'
+						autoComplete='phone'
+						value={formik.values.phone}
 						onChange={formik.handleChange}
 						error={
-							formik.touched.phoneNumber &&
-							Boolean(formik.errors.phoneNumber)
+							formik.touched.phone && Boolean(formik.errors.phone)
 						}
-						helperText={
-							formik.touched.phoneNumber &&
-							formik.errors.phoneNumber
-						}
+						helperText={formik.touched.phone && formik.errors.phone}
 					/>
 
 					<LoadingButton
