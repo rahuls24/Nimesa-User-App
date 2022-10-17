@@ -5,12 +5,9 @@ import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
-import { API, graphqlOperation } from 'aws-amplify';
 import { useFormik } from 'formik';
 import { forwardRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import * as yup from 'yup';
-import { createUser } from '../graphql/mutations';
 const Alert = forwardRef(function Alert(props, ref) {
 	return <MuiAlert elevation={6} ref={ref} variant='filled' {...props} />;
 });
@@ -34,7 +31,16 @@ const validationSchema = yup.object({
 		.matches(phoneRegExp, 'Phone number is not valid')
 		.required('Phone Number is required'),
 });
-export default function UserForm({ saveUser }) {
+export default function UserForm(props) {
+	const {
+		submitBtnText = 'Save User',
+		onSubmitHandler,
+		initialNameValue = '',
+		initialEmailValue = '',
+		initialPhoneValue = '',
+		onErrorAlertText = 'Something went wrong.',
+		onSuccessALertText = 'Action is done successfully.',
+	} = props;
 	const [autoHideAlertProps, setAutoHideAlertProps] = useState({
 		shouldShow: false,
 		alertMsg: '',
@@ -45,37 +51,28 @@ export default function UserForm({ saveUser }) {
 
 	const formik = useFormik({
 		initialValues: {
-			name: '',
-			email: '',
-			phone: '',
+			name: initialNameValue,
+			email: initialEmailValue,
+			phone: initialPhoneValue,
 		},
 		validationSchema: validationSchema,
 		onSubmit: async values => {
 			setIsSaveBtnLoading(true);
-			const userPayload = {
-				...values,
-				id: uuidv4(),
-			};
-			try {
-				await API.graphql(
-					graphqlOperation(createUser, {
-						input: userPayload,
-					}),
-				);
+			const isOnSubmitSuccess = await onSubmitHandler(values);
+			if (isOnSubmitSuccess)
 				setAutoHideAlertProps(prev => ({
 					...prev,
 					shouldShow: true,
-					alertMsg: 'User is added successfully',
+					alertMsg: onSuccessALertText,
 				}));
-			} catch (error) {
+			else
 				setAutoHideAlertProps(prev => ({
 					...prev,
 					shouldShow: true,
 					severity: 'error',
-					alertMsg: 'Something went wrong. Please try again.',
+					alertMsg: onErrorAlertText,
 				}));
-				console.log(error);
-			}
+
 			resetForm();
 			setIsSaveBtnLoading(false);
 		},
@@ -149,7 +146,7 @@ export default function UserForm({ saveUser }) {
 						variant='contained'
 						sx={{ mt: 3, mb: 2 }}
 					>
-						Save User
+						{submitBtnText}
 					</LoadingButton>
 				</Box>
 			</Box>

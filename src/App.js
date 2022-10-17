@@ -1,19 +1,17 @@
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Accordion from '@mui/material/Accordion';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import Grid from '@mui/material/Grid';
-import Typography from '@mui/material/Typography';
-import './App.css';
-import AppHeader from './components/AppHeader';
-import UserDataTable from './components/UserDataTable';
-import UserForm from './components/UserForm';
-
 import { Authenticator } from '@aws-amplify/ui-react';
+import Grid from '@mui/material/Grid';
 import { Amplify } from 'aws-amplify';
+import { useState } from 'react';
+import './App.css';
 import awsconfig from './aws-exports';
+import AddUser from './components/AddUser';
+import AppHeader from './components/AppHeader';
+import EditUser from './components/EditUser';
+import UserDataTable from './components/UserDataTable';
 Amplify.configure(awsconfig);
-function App({ isPassedToWithAuthenticator, signOut, user }) {
+function App() {
+	const [isEditUserViewOpen, setIsEditUserViewOpen] = useState(false);
+	const [currentUserData, setCurrentUserData] = useState({});
 	return (
 		<Authenticator loginMechanisms={['email']}>
 			{({ signOut, user }) => (
@@ -25,24 +23,22 @@ function App({ isPassedToWithAuthenticator, signOut, user }) {
 						columns={{ xs: 4, md: 8, lg: 12 }}
 					>
 						<Grid item xs={4} md={3} lg={4} sx={{ marginTop: 8 }}>
-							{/* It can be a standalone component.  */}
-							<Accordion>
-								<AccordionSummary
-									expandIcon={<ExpandMoreIcon />}
-									aria-controls='add-user-content'
-									id='add-user-header'
-								>
-									<Typography>Add User</Typography>
-								</AccordionSummary>
-								<AccordionDetails>
-									<UserForm  />
-								</AccordionDetails>
-							</Accordion>
+							{isEditUserViewOpen ? (
+								<EditUser
+									setIsEditUserViewOpen={
+										setIsEditUserViewOpen
+									}
+									usersData={currentUserData}
+								/>
+							) : (
+								<AddUser />
+							)}
 						</Grid>
 
 						<Grid item xs={4} md={5} lg={8}>
 							<UserDataTable
-		
+								setIsEditUserViewOpen={setIsEditUserViewOpen}
+								setCurrentUserData={setCurrentUserData}
 							/>
 						</Grid>
 					</Grid>

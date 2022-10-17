@@ -11,8 +11,14 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import { API, graphqlOperation } from 'aws-amplify';
 import { useEffect, useState } from 'react';
+import { deleteUser } from '../graphql/mutations';
 import { listUsers } from '../graphql/queries';
-import { onCreateUser } from '../graphql/subscriptions';
+import {
+	onCreateUser,
+	onDeleteUser,
+	onUpdateUser
+} from '../graphql/subscriptions';
+import UserActionPopup from './UserActionPopup';
 const columns = [
 	{ id: 'id', label: 'NO', minWidth: 60 },
 	{ id: 'name', label: 'Name', minWidth: 170 },
@@ -20,12 +26,14 @@ const columns = [
 	{ id: 'phone', label: 'Phone Number', minWidth: 170 },
 ];
 
-export default function UserDataTable() {
+export default function UserDataTable(props) {
+	const { setIsEditUserViewOpen, setCurrentUserData } = props;
 	const [usersData, setUsersData] = useState([]);
 	const [isFetching, setIsFetching] = useState(false);
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(5);
-
+	const [isUpdateUserPopupOpen, setIsUpdateUserPopupOpen] = useState(false);
+	const [currentSelectUser, setCurrentSelectUser] = useState(null);
 	const handleChangePage = (event, newPage) => {
 		setPage(newPage);
 	};
@@ -47,6 +55,27 @@ export default function UserDataTable() {
 		}
 		setIsFetching(false);
 	};
+	const updateUser = async action => {
+		switch (action) {
+			case 'editUser':
+				setIsEditUserViewOpen(true);
+				setCurrentUserData(currentSelectUser);
+				break;
+			case 'deleteUser':
+				try {
+					await API.graphql({
+						query: deleteUser,
+						variables: { input: { id: currentSelectUser.id } },
+					});
+				} catch (error) {
+					console.log(error);
+				}
+
+				break;
+			default:
+				break;
+		}
+	};
 	useEffect(() => {
 		getUsersData();
 	}, []);
@@ -58,7 +87,24 @@ export default function UserDataTable() {
 			next: getUsersData,
 			error: error => console.warn(error),
 		});
-		return () => userAddedSubscription.unsubscribe();
+		const userDeletedSubscription = API.graphql(
+			graphqlOperation(onDeleteUser),
+		).subscribe({
+			next: getUsersData,
+			error: error => console.warn(error),
+		});
+		const userUpdatedSubscription = API.graphql(
+			graphqlOperation(onUpdateUser),
+		).subscribe({
+			next: getUsersData,
+			error: error => console.warn(error),
+		});
+
+		return () => {
+			userAddedSubscription.unsubscribe();
+			userDeletedSubscription.unsubscribe();
+			userUpdatedSubscription.unsubscribe();
+		};
 	}, []);
 	return (
 		<Paper
@@ -106,6 +152,11 @@ export default function UserDataTable() {
 											role='checkbox'
 											tabIndex={-1}
 											key={user.id}
+											sx={{ cursor: 'pointer' }}
+											onClick={() => {
+												setCurrentSelectUser(user);
+												setIsUpdateUserPopupOpen(true);
+											}}
 										>
 											{columns.map(column => {
 												const value =
@@ -163,6 +214,11 @@ export default function UserDataTable() {
 				page={page}
 				onPageChange={handleChangePage}
 				onRowsPerPageChange={handleChangeRowsPerPage}
+			/>
+			<UserActionPopup
+				open={isUpdateUserPopupOpen}
+				setOpen={setIsUpdateUserPopupOpen}
+				onCloseHandler={updateUser}
 			/>
 		</Paper>
 	);
